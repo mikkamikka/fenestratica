@@ -12,6 +12,12 @@ function Viewer( divID ){
 
 	this.Init = init;
 
+	var container = $( "#" + divID )[ 0 ];
+
+	this.container = container;
+
+
+
 	var structureDescription = {
 
 		outerElement: [ { center: new THREE.Vector3(0,300,0), start: new THREE.Vector3(), end: new THREE.Vector3(), length: 1000, orientation: 'horizontal' },
@@ -28,16 +34,24 @@ function Viewer( divID ){
 
 	var structureWindowsDescription = {
 
-		panels: [ { center: new THREE.Vector3(0,0,0), width: 300, height: 1000,
-			leftTop: new THREE.Vector2( -500, 300 ), rightBottom: new THREE.Vector2( 0, - 300 ) },
-					{ center: new THREE.Vector3(0,0,0), width: 300, height: 1000,
+		panels: [
+			{ center: new THREE.Vector3(0,0,0), width: 300, height: 1000,
+						leftTop: new THREE.Vector2( -500, 300 ), rightBottom: new THREE.Vector2( 0, - 300 ) },
+
+			{ center: new THREE.Vector3(0,0,0), width: 300, height: 1000,
 						leftTop: new THREE.Vector2( 0, 300 ), rightBottom: new THREE.Vector2( 500, - 300 ) }
 
 		]
 
 	}
 
-	var editableElements = [];
+	this.structureDescription = structureDescription;
+
+	this.structureWindowsDescription = structureWindowsDescription;
+
+
+
+	this.editableElements = [];
 
 	var sideElementModel, middleElementModel;
 
@@ -109,8 +123,8 @@ function Viewer( divID ){
 			pointLight.position.set( -100 * volumeScale, 50 * volumeScale, 0 );
 			_this.scene.add( pointLight );
 
-			var pointLight1 = new THREE.PointLight( 0xffffff, 0.3 );
-			pointLight1.position.set( 0, 5 * volumeScale, 10 * volumeScale );
+			var pointLight1 = new THREE.PointLight( 0xffffff, 0.2 );
+			pointLight1.position.set( 60, 5 * volumeScale, 50 * volumeScale );
 			pointLight1.position.multiplyScalar( 1.5 );
 			_this.scene.add( pointLight1 );
 
@@ -386,10 +400,11 @@ function Viewer( divID ){
 
 	function initEditor(){
 
+		var mouse = { x:0, y:0 };
 
-		var mouse, raycaster;
+		var raycaster = new THREE.Raycaster();
 
-
+		addUserInteractions();
 
 		function addUserInteractions() {
 
@@ -551,99 +566,52 @@ function Viewer( divID ){
 		}
 
 		function onDoubleClick( event ) {
-			//
-			//if ( !_this.loaderComponent ) return;
-			//
-			//updateMousePos( event );
-			//
-			//var all = _this.loaderComponent.gizmos.concat( _this.loaderComponent.sprites );
-			//
-			//var obj;
-			//
-			//
-			////if ( ( obj = castRay( _this.loaderComponent.mainDimensionLine.children[ 1 ] ) ) != undefined ) {
-			////
-			////	console.log( "clicked", obj );
-			////
-			////}
-			//
-			//if ( ( obj = castRay( all ) ) != undefined ) {
-			//	/*
-			//	 -casts a ray and checks if it hit anything valid
-			//	 -selects a valid gizmo
-			//	 -prompts the user for a new position
-			//	 -positions the selected gizmo to the new value
-			//	 */
-			//	_this.selectedGizmo = obj.object;
-			//
-			//
-			//
-			//	//if ( _this.selectedGizmo.type == "sprite" )
-			//	//	_this.selectedGizmo = _this.selectedGizmo.parent.parent;
-			//
-			//
-			//	// double click on main dimension line label
-			//	if ( _this.selectedGizmo.type == "lengthSprite"
-			//		|| _this.selectedGizmo.gizmoType == "dimension"
-			//
-			//	) {
-			//
-			//		//_this.loaderComponent.setBeamLength();
-			//
-			//		if ( _this.viewerComponent.onUserSelectBeamLength != undefined ){
-			//
-			//			_this.viewerComponent.onUserSelectBeamLength();
-			//
-			//		}else{
-			//
-			//			console.warn( "Callback function is not set" );
-			//		}
-			//
-			//		onMouseUp();
-			//		return;
-			//
-			//	}
-			//
-			//	if ( _this.selectedGizmo.gizmoType == "support" ) {
-			//
-			//		if ( _this.viewerComponent.onUserSelectSupport != undefined ){
-			//
-			//			_this.viewerComponent.onUserSelectSupport( _this.selectedGizmo.node.id );
-			//
-			//		}else{
-			//
-			//			console.warn( "Callback function is not set" );
-			//		}
-			//
-			//	}
-			//
-			//	if ( _this.selectedGizmo.gizmoType == "loadPoint"
-			//		|| _this.selectedGizmo.gizmoType == "distributed"
-			//		|| _this.selectedGizmo.gizmoType == "bending"
-			//	) {
-			//
-			//		if ( _this.viewerComponent.onUserSelectLoadPoint != undefined ){
-			//
-			//			_this.viewerComponent.onUserSelectLoadPoint( _this.selectedGizmo.parentNode.id );
-			//
-			//		}else{
-			//
-			//			console.warn( "Callback function is not set" );
-			//		}
-			//
-			//	}
-			//
-			//	//var newX = prompt( "new position" );
-			//	//
-			//	//if ( newX != undefined || isNaN( newX ) ) {
-			//	//
-			//	//	_this.selectedGizmo.position.setX( -newX * _this.loaderComponent.beamScreenToUnitsRatio );
-			//	//
-			//	//}
-			//
-			//	onMouseUp();
-			//
-			//} else resetGizmoEmissive();
+
+
+
+			updateMousePos( event );
+
+			var all = _this.editableElements;
+
+			var obj;
+
+			if ( ( obj = castRay( all ) ) != undefined ) {
+				/*
+				 -casts a ray and checks if it hit anything valid
+				 -selects a valid gizmo
+				 -prompts the user for a new position
+				 -positions the selected gizmo to the new value
+				 */
+				_this.selectedGizmo = obj.object;
+
+				// double click on main dimension line label
+				if ( _this.selectedGizmo.type == "dimension"
+					//|| _this.selectedGizmo.gizmoType == "dimension"
+
+				) {
+
+					console.log( _this.selectedGizmo.nodeID, _this.selectedGizmo.orientation )
+
+					_this.updateNodePosition( _this.selectedGizmo.nodeID, _this.selectedGizmo.orientation );
+
+					//if ( _this.viewerComponent.onUserSelectBeamLength != undefined ){
+					//
+					//	_this.viewerComponent.onUserSelectBeamLength();
+					//
+					//}else{
+					//
+					//	console.warn( "Callback function is not set" );
+					//}
+
+					//onMouseUp();
+					return;
+
+				}
+
+
+				//onMouseUp();
+
+			} //else resetGizmoEmissive();
 		}
 
 		function detectCTRLkey( event, bool ) {
@@ -657,9 +625,9 @@ function Viewer( divID ){
 
 		function updateMousePos( event ) {
 
-			var offset = _this.container.offset();
-			mouse.x = ((event.clientX - (offset.left - window.scrollLeft())) / _this.width) * 2 - 1;
-			mouse.y = -((event.clientY - (offset.top - window.scrollTop())) / _this.height) * 2 + 1;
+			var offset = $( container ).offset();
+			mouse.x = ((event.clientX - (offset.left - $(window).scrollLeft())) / _this.width) * 2 - 1;
+			mouse.y = -((event.clientY - (offset.top - $(window).scrollTop())) / _this.height) * 2 + 1;
 
 		}
 
@@ -668,38 +636,55 @@ function Viewer( divID ){
 			 -perform a raycast to an array received as an argument
 			 -if a valid mesh is found, its returned. if not, return undefined
 			 */
-			//raycaster.setFromCamera( mouse, _this.camera );
-			//var intersects = raycaster.intersectObjects( array, false );
-			//if ( intersects[ 0 ] ) {
-			//	toggleInput( false );
-			//	return intersects[ 0 ];
-			//} else return undefined;
+			raycaster.setFromCamera( mouse, _this.camera );
+			var intersects = raycaster.intersectObjects( array, false );
+			if ( intersects[ 0 ] ) {
+				//toggleInput( false );
+				return intersects[ 0 ];
+			} else return undefined;
+		}
+
+		function toggleInput( bool ) {
+			_this.controls.enabled = bool;
 		}
 
 	}
 
+	this.createDesignScene = createDesignScene;
+
+	var firstLaunch = true;
+
 	function createDesignScene(){
 
-		createProfiles();
+		_this.profilesLayer = createProfiles();
 
-		createPanelElements();
+		_this.panelsLayer = createPanelElements();
+
+		_this.scene.add( _this.profilesLayer );
+
+		_this.scene.add( _this.panelsLayer );
+
+
 
 		function createProfiles(){
 
-			console.log( sideElementModel );
+			//console.log( sideElementModel );
 
-			console.log( structureDescription );
+			//console.log( structureDescription );
+
+			var profiles = new THREE.Object3D();
 
 
 			var firstMeshSide =  sideElementModel.children[ 0 ];
 
-			if ( firstMeshSide.geometry.boundingSphere === null ) firstMeshSide.geometry.computeBoundingSphere();
+			//if ( firstMeshSide.geometry.boundingSphere === null )
+				firstMeshSide.geometry.computeBoundingSphere();
 
 			console.log( firstMeshSide.geometry.boundingSphere.center );
 
 			var shiftSideElement = firstMeshSide.geometry.boundingSphere.center;
 
-			recalcuatePositions( sideElementModel, shiftSideElement );
+			if ( firstLaunch ) recalcuatePositions( sideElementModel, shiftSideElement );
 
 			sideElementModel.scale.x = 0.2;
 			sideElementModel.scale.y = 0.2;
@@ -719,7 +704,7 @@ function Viewer( divID ){
 
 			shiftMiddleElement.y -= 40;
 
-			recalcuatePositions( middleElementModel, shiftMiddleElement );
+			if ( firstLaunch ) recalcuatePositions( middleElementModel, shiftMiddleElement );
 
 			middleElementModel.scale.x = 0.2;
 			middleElementModel.scale.y = 0.2;
@@ -746,7 +731,7 @@ function Viewer( divID ){
 
 				}
 
-				_this.scene.add( element );
+				profiles.add( element );
 
 			}
 
@@ -766,13 +751,19 @@ function Viewer( divID ){
 
 				}
 
-				_this.scene.add( element );
+				profiles.add( element );
 
 			}
+
+			firstLaunch = false;
+
+			return profiles;
 
 		}
 
 		function createPanelElements(){
+
+			var panels = new THREE.Object3D();
 
 
 			var windowGeometry = new THREE.BoxGeometry( 1,1,1 );
@@ -805,16 +796,19 @@ function Viewer( divID ){
 
 					panel.position.x = posX;// + structureWindowsDescription.panels[ i ].width / 2;
 
-					_this.scene.add( panel );
+					panels.add( panel );
 
 				}
 
 			}
 
+			return panels;
+
 		}
 
+		var dimensionChain = _this.createDimensionChain();
 
-
+		_this.scene.add( dimensionChain );
 
 		function recalcuatePositions( object, shift ){
 
@@ -842,14 +836,301 @@ function Viewer( divID ){
 
 			} );
 
+		}
 
+	}
+
+}
+
+var nodesH = [ { x: -500, y: 300 }, { x: 0, y: 300 }, { x: 500, y: 300 } ];
+var nodesV = [ { x: -500, y: 300 }, { x: -500, y: -300 } ];
+
+Viewer.prototype.updateNodePosition = function( nodeID, orientation ){
+
+	var _this = this;
+
+	var newValue;
+
+	var n = document.createElement("input");
+	n.setAttribute("type", "number");
+	n.className = "inputValue";
+	n.onchange = function(){
+
+		newValue = n.value;
+
+		_this.container.removeChild( n );
+
+		n = null;
+
+		setNewValue( newValue );
+
+	};
+
+	this.container.appendChild( n );
+
+	function setNewValue( val ){
+
+		if ( orientation == 'horizontal' ){
+
+			if ( nodeID==0 ){
+
+				nodesH[ 0 ].x = - Number( val );
+
+			}else{
+
+				nodesH[ 2 ].x = Number( val );
+
+			}
+
+
+			nodesV[ 0 ].x = - Number( val );
+			nodesV[ 1 ].x = - Number( val );
+
+			_this.structureDescription.outerElement[ 0 ].length = nodesH[ 2 ].x + Math.abs( nodesH[ 0 ].x );
+			_this.structureDescription.outerElement[ 1 ].length = nodesH[ 2 ].x + Math.abs( nodesH[ 0 ].x );
+			_this.structureDescription.outerElement[ 0 ].center.x = ( nodesH[ 2 ].x + nodesH[ 0 ].x ) / 2;
+			_this.structureDescription.outerElement[ 1 ].center.x = ( nodesH[ 2 ].x + nodesH[ 0 ].x ) / 2;
+
+			_this.structureDescription.outerElement[ 2 ].center.x = nodesH[ 0 ].x;
+			_this.structureDescription.outerElement[ 3 ].center.x = nodesH[ 2 ].x;
+
+			//_this.structureDescription.middleElement[ 0 ].length = Number( val );
+
+			_this.structureWindowsDescription.panels[ 0 ].leftTop.x = nodesH[ 0 ].x;
+			_this.structureWindowsDescription.panels[ 0 ].rightBottom.x = nodesH[ 1 ].x;
+			_this.structureWindowsDescription.panels[ 1 ].leftTop.x = nodesH[ 1 ].x;
+			_this.structureWindowsDescription.panels[ 1 ].rightBottom.x = nodesH[ 2 ].x;
+
+		}else{
+
+			nodesH[ 0 ].y = Number( val/2 );
+			nodesH[ 1 ].y = Number( val/2 );
+			nodesH[ 2 ].y = Number( val/2 );
+
+			nodesV[ 0 ].y = - Number( val/2 );
+			nodesV[ 1 ].y = Number( val/2 );
+
+			_this.structureDescription.outerElement[ 0 ].center.y = Number( val/2 );
+			_this.structureDescription.outerElement[ 1 ].center.y = - Number( val/2 );
+			_this.structureDescription.outerElement[ 2 ].length = Number( val );
+			_this.structureDescription.outerElement[ 3 ].length = Number( val );
+
+			_this.structureDescription.middleElement[ 0 ].length = Number( val );
+
+			_this.structureWindowsDescription.panels[ 0 ].leftTop.y = Number( val/2 );
+			_this.structureWindowsDescription.panels[ 0 ].rightBottom.y = - Number( val/2 );
+			_this.structureWindowsDescription.panels[ 1 ].leftTop.y = Number( val/2 );
+			_this.structureWindowsDescription.panels[ 1 ].rightBottom.y = - Number( val/2 );
 
 		}
 
+		console.log( nodesH, nodesV );
+
+		_this.reloadEditorScene();
 
 	}
 
 
+}
 
+Viewer.prototype.reloadEditorScene = function(){
+
+	var _this = this;
+
+	this.scene.remove( this.profilesLayer );
+
+	this.scene.remove( this.panelsLayer );
+
+	this.scene.remove( this.dimensionChain );
+
+	this.profilesLayer = null;
+
+	this.panelsLayer = null;
+
+	this.dimensionChain = null;
+
+	this.createDesignScene();
+
+}
+
+Viewer.prototype.createDimensionChain = function() {
+
+	var _this = this;
+
+	this.dimensionChain = new THREE.Object3D();
+
+
+	var dimLineVerticalHeight = nodesH[ 0 ].y + 50;
+
+	var dimLineHorizontalHeight = Math.abs( nodesV[ 0 ].x ) + 50;
+
+	var labelOffsetV = 20;
+
+	var vertLineObjSpacing = 10;
+	var vertLineExtensionStrokeLength = 60;
+
+	var horizontalDimChain = createHorizontalDimChain();
+
+	this.dimensionChain.add( horizontalDimChain );
+
+	var verticalDimChain = createVerticalDimChain( nodesV );
+
+	this.dimensionChain.add( verticalDimChain );
+
+	function createHorizontalDimChain(){
+
+		var dimensionChain = new THREE.Object3D();
+
+		for ( var i = 0; i < nodesH.length - 1; i++ ) {
+
+			var posX = interpolateValue( nodesH[ i ].x, nodesH[ i + 1 ].x, 0.5 );
+
+			var dimension = Math.abs( nodesH[ i + 1 ].x - nodesH[ i ].x );
+
+			var text = dimension;
+
+			var dimLabel = createLabelDimension( new THREE.Vector3( posX, dimLineVerticalHeight + labelOffsetV, 0 ), text, new THREE.Vector3() );
+
+			dimLabel.nodeID = i;
+
+			dimLabel.type = 'dimension';
+
+			dimLabel.orientation = 'horizontal';
+
+			_this.editableElements.push( dimLabel );
+
+			var dimVertLine = makeDistanceLine(
+				[   new THREE.Vector3( nodesH[ i ].x, nodesH[ i ].y + vertLineObjSpacing, 0 ),
+					new THREE.Vector3( nodesH[ i ].x, nodesH[ i ].y + vertLineExtensionStrokeLength, 0 ),
+				],
+				viewerSettings.dim.lineColor
+			);
+
+
+			var arrowhead1 = make3DObject( "arrowHead", 0, 30 );
+			arrowhead1.position.setX( nodesH[ i ].x );
+			arrowhead1.position.setY( dimLineVerticalHeight );
+			arrowhead1.rotation.z = - Math.PI / 2;
+			arrowhead1.material.color.set( viewerSettings.dim.lineColor );
+
+			var arrowhead2 = arrowhead1.clone();
+			arrowhead2.rotation.z -= Math.PI;
+			arrowhead2.position.setX( nodesH[ i + 1 ].x );
+			arrowhead2.material.color.set( viewerSettings.dim.lineColor );
+
+
+			dimensionChain.add( dimLabel );
+
+			dimensionChain.add( dimVertLine );
+
+			dimensionChain.add( arrowhead1 );
+
+			dimensionChain.add( arrowhead2 );
+
+		}
+
+		var dimVertLine = makeDistanceLine(
+			[   new THREE.Vector3( nodesH[ nodesH.length - 1 ].x, nodesH[ nodesH.length - 1 ].y + vertLineObjSpacing, 0 ),
+				new THREE.Vector3( nodesH[ nodesH.length - 1 ].x, nodesH[ nodesH.length - 1 ].y + vertLineExtensionStrokeLength, 0 ),
+			],
+			viewerSettings.dim.lineColor );
+
+		dimensionChain.add( dimVertLine );
+
+		// horizontal length line
+
+		var start = nodesH[ 0 ].x;
+		var end = nodesH[ nodesH.length - 1 ].x;
+		var beamLengthStartV3 = new THREE.Vector3( start, dimLineVerticalHeight, 0 );
+		var beamLengthEndV3 = new THREE.Vector3( end, dimLineVerticalHeight, 0 );
+		var lineVectors = [ beamLengthStartV3, beamLengthEndV3 ];
+
+		var lengthLine = makeDistanceLine( lineVectors, viewerSettings.dim.lineColor );
+		dimensionChain.add( lengthLine );
+
+		return dimensionChain;
+
+	}
+
+	function createVerticalDimChain( nodes ){
+
+		var dimensionChain = new THREE.Object3D();
+
+		for ( var i = 0; i < nodes.length - 1; i++ ) {
+
+			var posX = interpolateValue( nodes[ i ].y, nodes[ i + 1 ].y, 0.5 );
+
+			var dimension = Math.abs( nodes[ i + 1 ].y - nodes[ i ].y );
+
+			var text = dimension;
+
+			var dimLabel = createLabelDimension( new THREE.Vector3( posX, dimLineHorizontalHeight + labelOffsetV, 0 ), text, new THREE.Vector3() );
+
+			dimLabel.nodeID = i;
+
+			dimLabel.type = 'dimension';
+
+			dimLabel.orientation = 'vertical';
+
+			_this.editableElements.push( dimLabel );
+
+			var dimVertLine = makeDistanceLine(
+				[   new THREE.Vector3( nodes[ i ].y, Math.abs( nodes[ i ].x ) + vertLineObjSpacing, 0 ),
+					new THREE.Vector3( nodes[ i ].y, Math.abs( nodes[ i ].x ) + vertLineExtensionStrokeLength, 0 ),
+				],
+				viewerSettings.dim.lineColor
+			);
+
+
+			var arrowhead1 = make3DObject( "arrowHead", 0, 30 );
+			arrowhead1.position.setX( nodes[ i ].y );
+			arrowhead1.position.setY( dimLineHorizontalHeight );
+			arrowhead1.rotation.z = Math.PI / 2;
+			arrowhead1.material.color.set( viewerSettings.dim.lineColor );
+
+			var arrowhead2 = arrowhead1.clone();
+			arrowhead2.rotation.z -= Math.PI;
+			arrowhead2.position.setX( nodes[ i + 1 ].y );
+			arrowhead2.material.color.set( viewerSettings.dim.lineColor );
+
+
+			dimensionChain.add( dimLabel );
+
+			dimensionChain.add( dimVertLine );
+
+			dimensionChain.add( arrowhead1 );
+
+			dimensionChain.add( arrowhead2 );
+
+		}
+
+		var dimVertLine = makeDistanceLine(
+			[   new THREE.Vector3( nodes[ nodes.length - 1 ].y, Math.abs( nodes[ nodes.length - 1 ].x ) + vertLineObjSpacing, 0 ),
+				new THREE.Vector3( nodes[ nodes.length - 1 ].y, Math.abs( nodes[ nodes.length - 1 ].x ) + vertLineExtensionStrokeLength, 0 ),
+			],
+			viewerSettings.dim.lineColor );
+
+		dimensionChain.add( dimVertLine );
+
+		// horizontal length line
+
+		var start = nodes[ 0 ].y;
+		var end = nodes[ nodes.length - 1 ].y;
+		var beamLengthStartV3 = new THREE.Vector3( start, dimLineHorizontalHeight, 0 );
+		var beamLengthEndV3 = new THREE.Vector3( end, dimLineHorizontalHeight, 0 );
+		var lineVectors = [ beamLengthStartV3, beamLengthEndV3 ];
+
+		var lengthLine = makeDistanceLine( lineVectors, viewerSettings.dim.lineColor );
+		dimensionChain.add( lengthLine );
+
+		dimensionChain.rotation.z = Math.PI / 2;
+
+		return dimensionChain;
+
+	}
+
+	//_this.animatorComponent.scene.add( dimensionChain );
+
+	return this.dimensionChain;
 
 }
