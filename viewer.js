@@ -567,8 +567,6 @@ function Viewer( divID ){
 
 		function onDoubleClick( event ) {
 
-
-
 			updateMousePos( event );
 
 			var all = _this.editableElements;
@@ -576,12 +574,7 @@ function Viewer( divID ){
 			var obj;
 
 			if ( ( obj = castRay( all ) ) != undefined ) {
-				/*
-				 -casts a ray and checks if it hit anything valid
-				 -selects a valid gizmo
-				 -prompts the user for a new position
-				 -positions the selected gizmo to the new value
-				 */
+
 				_this.selectedGizmo = obj.object;
 
 				// double click on main dimension line label
@@ -592,7 +585,7 @@ function Viewer( divID ){
 
 					console.log( _this.selectedGizmo.nodeID, _this.selectedGizmo.orientation )
 
-					_this.updateNodePosition( _this.selectedGizmo.nodeID, _this.selectedGizmo.orientation );
+					_this.updateNodePosition( _this.selectedGizmo.nodeID, _this.selectedGizmo.orientation, event );
 
 					//if ( _this.viewerComponent.onUserSelectBeamLength != undefined ){
 					//
@@ -845,7 +838,7 @@ function Viewer( divID ){
 var nodesH = [ { x: -500, y: 300 }, { x: 0, y: 300 }, { x: 500, y: 300 } ];
 var nodesV = [ { x: -500, y: 300 }, { x: -500, y: -300 } ];
 
-Viewer.prototype.updateNodePosition = function( nodeID, orientation ){
+Viewer.prototype.updateNodePosition = function( nodeID, orientation, event ){
 
 	var _this = this;
 
@@ -854,6 +847,11 @@ Viewer.prototype.updateNodePosition = function( nodeID, orientation ){
 	var n = document.createElement("input");
 	n.setAttribute("type", "number");
 	n.className = "inputValue";
+	n.style.position = 'absolute';
+	n.style.top = event.clientY.toString() + 'px';
+	n.style.left = event.clientX.toString() + 'px';
+	n.style.zIndex = 10;
+	n.autofocus = true;
 	n.onchange = function(){
 
 		newValue = n.value;
@@ -875,16 +873,14 @@ Viewer.prototype.updateNodePosition = function( nodeID, orientation ){
 			if ( nodeID==0 ){
 
 				nodesH[ 0 ].x = - Number( val );
+				nodesV[ 0 ].x = - Number( val );
+				nodesV[ 1 ].x = - Number( val );
 
 			}else{
 
 				nodesH[ 2 ].x = Number( val );
 
 			}
-
-
-			nodesV[ 0 ].x = - Number( val );
-			nodesV[ 1 ].x = - Number( val );
 
 			_this.structureDescription.outerElement[ 0 ].length = nodesH[ 2 ].x + Math.abs( nodesH[ 0 ].x );
 			_this.structureDescription.outerElement[ 1 ].length = nodesH[ 2 ].x + Math.abs( nodesH[ 0 ].x );
@@ -924,7 +920,7 @@ Viewer.prototype.updateNodePosition = function( nodeID, orientation ){
 
 		}
 
-		console.log( nodesH, nodesV );
+		//console.log( nodesH, nodesV );
 
 		_this.reloadEditorScene();
 
