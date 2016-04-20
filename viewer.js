@@ -36,10 +36,10 @@ function Viewer( divID ){
 
 		panels: [
 			{ center: new THREE.Vector3(0,0,0), width: 300, height: 1000,
-						leftTop: new THREE.Vector2( -500, 300 ), rightBottom: new THREE.Vector2( 0, - 300 ) },
+						leftTop: new THREE.Vector2( -500, 300 ), rightBottom: new THREE.Vector2( 0, - 300 ), surfaceLoad: 1200 },
 
 			{ center: new THREE.Vector3(0,0,0), width: 300, height: 1000,
-						leftTop: new THREE.Vector2( 0, 300 ), rightBottom: new THREE.Vector2( 500, - 300 ) }
+						leftTop: new THREE.Vector2( 0, 300 ), rightBottom: new THREE.Vector2( 500, - 300 ), surfaceLoad: 800 }
 
 		]
 
@@ -657,6 +657,13 @@ function Viewer( divID ){
 
 		_this.scene.add( _this.panelsLayer );
 
+		_this.surfaceLoadLayer = _this.createSurfaceLoadLayer();
+
+		_this.scene.add( _this.surfaceLoadLayer );
+
+		var dimensionChain = _this.createDimensionChain();
+
+		_this.scene.add( dimensionChain );
 
 
 		function createProfiles(){
@@ -799,10 +806,6 @@ function Viewer( divID ){
 
 		}
 
-		var dimensionChain = _this.createDimensionChain();
-
-		_this.scene.add( dimensionChain );
-
 		function recalcuatePositions( object, shift ){
 
 			object.traverse( function ( child ) {
@@ -837,6 +840,53 @@ function Viewer( divID ){
 
 var nodesH = [ { x: -500, y: 300 }, { x: 0, y: 300 }, { x: 500, y: 300 } ];
 var nodesV = [ { x: -500, y: 300 }, { x: -500, y: -300 } ];
+
+var nodes = [ [ { id: 0, x: -500, y: 300  }, { id: 1, x: 0, y: 300  }, { id: 2, x: 500, y: 300  } ],
+			  [ { id: 3, x: -500, y: -300 }, { id: 4, x: 0, y: -300 }, { id: 5, x: 500, y: -300 } ]
+
+];
+
+function getNode( id ){
+
+	for ( var i = 0; i < nodes.length; i++ ){
+
+		for ( var j = 0; j < nodes[ i ].length; j++ ){
+
+			if ( nodes[ i ][ j ].id === id ) return nodes[ i ][ j ];
+
+		}
+
+	}
+
+}
+
+var bars = [ { start: getNode(0), end: getNode(1) }, { start: getNode(1), end: getNode(2) },
+			 { start: getNode(3), end: getNode(4) }, { start: getNode(4), end: getNode(5) },
+	{ start: getNode(0), end: getNode(3) },
+	{ start: getNode(1), end: getNode(4) },
+	{ start: getNode(2), end: getNode(5) }
+];
+
+var beams = [];
+
+for ( var i = 0; i < nodes.length; i++ ){
+
+	beams[ i ] = { start: nodes[ i ][ 0 ], end: nodes[ i ][ nodes[ i ].length - 1 ] };
+	beams[ i ].orientation = 'horizontal';
+
+}
+
+for ( var i = 0; i < nodes[ 0 ].length; i++ ){
+
+	var newbeam = { start: nodes[ 0 ][ i ], end: nodes[ nodes.length - 1 ][ i ] };
+	newbeam.orientation = 'vertical';
+
+	beams.push( newbeam );
+
+}
+
+
+console.log( "beams: ", beams );
 
 Viewer.prototype.updateNodePosition = function( nodeID, orientation, event ){
 
@@ -939,11 +989,15 @@ Viewer.prototype.reloadEditorScene = function(){
 
 	this.scene.remove( this.dimensionChain );
 
+	this.scene.remove( this.surfaceLoadLayer );
+
 	this.profilesLayer = null;
 
 	this.panelsLayer = null;
 
 	this.dimensionChain = null;
+
+	this.surfaceLoadLayer = null;
 
 	this.createDesignScene();
 
@@ -1128,5 +1182,128 @@ Viewer.prototype.createDimensionChain = function() {
 	//_this.animatorComponent.scene.add( dimensionChain );
 
 	return this.dimensionChain;
+
+}
+
+Viewer.prototype.createSurfaceLoadLayer = function(){
+
+	var _this = this;
+
+	var layer = new THREE.Object3D();
+
+	for ( var i = 0; i < this.structureWindowsDescription.panels.length; i++ ){
+	//for ( var i = 0; i < 1; i++ ){
+
+		var panel = _this.structureWindowsDescription.panels[ i ];
+
+		var force = _this.structureWindowsDescription.panels[ i ].surfaceLoad;
+
+		var presenrationInstance = createPresentationInstance( panel.leftTop, panel.rightBottom, force );
+
+		layer.add( presenrationInstance );
+
+	}
+
+
+
+	function createPresentationInstance( leftTop, rightBottom, force ){
+
+		var model = new THREE.Object3D();
+
+		var dir = new THREE.Vector3(0,0,-1);
+
+		var offsetFromWindow = 17,
+			density = 50;
+
+		var origin = new THREE.Vector3();
+
+		//scale( valueIn, baseMin, baseMax, limitMin, limitMax )
+
+		var arrowLength = scale( force, 0, 6000, 30, 300 );
+
+		var hexColor = 0x0000ff;
+
+		var headLength = 15;
+		var headWidth = 5;
+
+		origin.z = arrowLength + offsetFromWindow;
+
+		function makeRowArrow( start, end, length ){
+
+			var row = new THREE.Object3D();
+
+			var num = 10; //Math.floor( length * density );
+
+			var delta = new THREE.Vector2( ( end.x - start.x ) / 10, ( end.y - start.y ) / 10 );
+
+			for ( var i = 0; i <= num; i++ ){
+
+				var pos = new THREE.Vector2();
+
+				pos.x = start.x + delta.x * i;
+				pos.y = start.y + delta.y * i;
+
+				origin.x = pos.x;
+				origin.y = pos.y;
+
+				var arrow = new THREE.ArrowHelper( dir, origin, arrowLength, hexColor, headLength, headWidth );
+
+				row.add( arrow );
+
+			}
+
+			var baselineStart = new THREE.Vector3( start.x, start.y, origin.z ),
+				baselineEnd = new THREE.Vector3( end.x, end.y, origin.z );
+
+			var baseline = makeDistanceLine( [ baselineStart, baselineEnd ], hexColor );
+
+			row.add( baseline );
+
+			return row;
+
+		}
+
+		var rowStart = new THREE.Vector2( leftTop.x, leftTop.y ),
+		    rowEnd = new THREE.Vector2( rightBottom.x, leftTop.y );
+		var row1 = makeRowArrow( rowStart, rowEnd, rowEnd.x - rowStart.x );
+
+		rowStart = new THREE.Vector2( leftTop.x, rightBottom.y );
+		rowEnd = new THREE.Vector2( rightBottom.x, rightBottom.y );
+		var row2 = makeRowArrow( rowStart, rowEnd, rowEnd.x - rowStart.x );
+
+		rowStart = new THREE.Vector2( leftTop.x, leftTop.y );
+		rowEnd = new THREE.Vector2( leftTop.x, rightBottom.y );
+		var row3 = makeRowArrow( rowStart, rowEnd, rowEnd.x - rowStart.x );
+
+		rowStart = new THREE.Vector2( rightBottom.x, leftTop.y );
+		rowEnd = new THREE.Vector2( rightBottom.x, rightBottom.y );
+		var row4 = makeRowArrow( rowStart, rowEnd, rowEnd.x - rowStart.x );
+
+		var labelPos = new THREE.Vector3();
+		labelPos.x = ( leftTop.x + rightBottom.x ) / 2;
+		labelPos.y = leftTop.y;
+		labelPos.z = origin.z;
+
+		var labelText = " Fz=" + force + " ";
+		var offset = new THREE.Vector3(100, 100, 50);
+
+		var label = createLabel( labelPos, labelText, offset ); //createLabel( pos, value, offset )
+
+		var leadOutStart = labelPos,
+			leadOutEnd = new THREE.Vector3( label.position.x, label.position.y, label.position.z );
+
+		var leadout = makeDistanceLine( [ leadOutStart, leadOutEnd ], 0x777777 );
+
+		model.add( row1 );
+		model.add( row2 );
+		model.add( row3 );
+		model.add( row4 );
+		model.add( label );
+		model.add( leadout );
+
+		return model;
+	}
+
+	return layer;
 
 }
