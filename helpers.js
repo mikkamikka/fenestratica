@@ -18,14 +18,14 @@ var viewerSettings = {
 	},
 
 	labelParamsDimensions: {
-		fontsize: 40,
+		fontsize: 36,
 		fontface: "Arial", // parameters for "labels" type of descriptions
 		color: "rgba( 80, 80, 80, 1 )",
 		borderColor: "rgba( 0, 0, 0, 0 )",
 		backgroundColor: "rgba( 255, 255, 255, 1 )",
 		borderThickness: 0,
-		canvasResolution: 256,
-		scale: 100
+		canvasResolution: 128,
+		scale: 70
 	}
 };
 
@@ -144,7 +144,7 @@ function makeLabelSprite2( message, parameters, in_color ) {
 	var canvas = document.createElement( 'canvas' );
 
 	canvas.width = size;
-	canvas.height = size;
+	canvas.height = size/2;
 
 	var context = canvas.getContext( '2d' );
 
@@ -152,8 +152,8 @@ function makeLabelSprite2( message, parameters, in_color ) {
 	var textWidth = metrics.width;
 
 
-	//context.fillStyle = "#00ffff";
-	//context.fillRect(0, 0, canvas.width, canvas.height);   // for debug only
+	context.fillStyle = "#00ffff";
+	context.fillRect(0, 0, canvas.width, canvas.height);   // for debug only
 
 	context.textAlign = "center";
 	context.font = fontsize + 'px ' + fontface;
@@ -162,7 +162,7 @@ function makeLabelSprite2( message, parameters, in_color ) {
 	context.textBaseline = "middle";
 	context.fillStyle = color;
 	//context.fillText(message, borderThickness, fontsize + borderThickness, 1000);
-	context.fillText( message, size / 2, size / 2 );
+	context.fillText( message, size / 2, size / 4 );
 
 	// canvas contents will be used for a texture
 	var texture = new THREE.Texture( canvas )
@@ -177,7 +177,7 @@ function makeLabelSprite2( message, parameters, in_color ) {
 
 	var sprite = new THREE.Sprite( spriteMaterial );
 
-	//sprite.scale.set(1, 1, 1);
+	sprite.scale.set(1, 0.5, 1);
 	return sprite;
 
 	// function for drawing rounded rectangles

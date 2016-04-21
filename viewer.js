@@ -404,6 +404,8 @@ function Viewer( divID ){
 
 		var raycaster = new THREE.Raycaster();
 
+		var lastSelectedObject;
+
 		addUserInteractions();
 
 		function addUserInteractions() {
@@ -424,6 +426,9 @@ function Viewer( divID ){
 			$canvas.dblclick( function ( event ) {
 				onDoubleClick( event )
 			} );
+
+			container.addEventListener( 'click', onMouseClick, false );
+
 			//window.keydown( function ( event ) {
 			//	onKeyDown( event )
 			//} );
@@ -517,51 +522,89 @@ function Viewer( divID ){
 			//detectCTRLkey( event, true )
 		}
 
+		function resetSelected( object ){
+
+			if ( object.name == "profile" ){
+
+				for ( var i = 0; i < object.children.length; i++ ){
+
+					object.children[ i ].material.emissive = new THREE.Color( 0x000000 );
+
+				}
+
+			}else if ( object.name == "panel" ){
+
+				object.material.emissive = new THREE.Color( 0x000000 );
+
+			}
+
+		}
+
 		function onMouseClick( event ) {
 
-			//if ( !_this.loaderComponent ) return;
-			//
-			//updateMousePos( event );
-			//
-			//var all = _this.loaderComponent.gizmos; //.concat( _this.loaderComponent.sprites );
-			//
-			//var obj;
-			//
-			//if ( ( obj = castRay( all ) ) != undefined ) {
-			//
-			//	_this.selectedGizmo = obj.object;
-			//
-			//
-			//	if ( _this.selectedGizmo.gizmoType == "support" ) {
-			//
-			//		if ( _this.viewerComponent.onUserClickSupport != undefined ){
-			//
-			//			_this.viewerComponent.onUserClickSupport( _this.selectedGizmo.node.id );
-			//
-			//		}else{
-			//
-			//			console.warn( "onUserClickSupport: Callback function is not set" );
-			//		}
-			//
-			//	}
-			//
-			//	if ( _this.selectedGizmo.gizmoType == "loadPoint"
-			//		|| _this.selectedGizmo.gizmoType == "distributed"
-			//		|| _this.selectedGizmo.gizmoType == "bending"
-			//	) {
-			//
-			//		if ( _this.viewerComponent.onUserClickLoadPoint != undefined ){
-			//
-			//			_this.viewerComponent.onUserClickLoadPoint( _this.selectedGizmo.parentNode.id );
-			//
-			//		}else{
-			//
-			//			console.warn( "onUserClickLoadPoint: Callback function is not set" );
-			//		}
-			//
-			//	}
-			//
-			//}
+			updateMousePos( event );
+
+			if ( lastSelectedObject != undefined ){
+
+				resetSelected( lastSelectedObject );
+
+			}
+
+			var all = _this.editableElements;
+
+			var casted = castRay( all );
+
+			if ( casted  != undefined ) {
+
+				var object = casted.object;
+
+				if ( object.type == "Mesh" ) {
+
+					if ( object.parent instanceof THREE.Group ){
+
+						if ( object.parent.name == "profile" ){
+
+							for ( var i = 0; i < object.parent.children.length; i++ ){
+
+								object.parent.children[ i ].material.emissive = new THREE.Color( 0xff0000 );
+
+							}
+
+						}
+
+						lastSelectedObject = object.parent;
+
+					}else
+					if ( object.name == "panel" ) {
+
+						object.material.emissive = new THREE.Color( 0xff0000 );
+
+						lastSelectedObject = object;
+
+					}
+
+
+
+
+
+					//if ( _this.viewerComponent.onUserClickSupport != undefined ){
+					//
+					//	_this.viewerComponent.onUserClickSupport( _this.selectedGizmo.node.id );
+					//
+					//}else{
+					//
+					//	console.warn( "onUserClickSupport: Callback function is not set" );
+					//}
+
+				}
+
+			}else {
+
+				if ( lastSelectedObject !== undefined ) resetSelected( lastSelectedObject );
+
+				lastSelectedObject = undefined;
+
+			}
 
 		}
 
@@ -571,21 +614,18 @@ function Viewer( divID ){
 
 			var all = _this.editableElements;
 
-			var obj;
+			var casted;
 
-			if ( ( obj = castRay( all ) ) != undefined ) {
+			if ( ( casted = castRay( all ) ) != undefined ) {
 
-				_this.selectedGizmo = obj.object;
+				var object = casted.object;
 
 				// double click on main dimension line label
-				if ( _this.selectedGizmo.type == "dimension"
-					//|| _this.selectedGizmo.gizmoType == "dimension"
+				if ( object.name == "dimensionLabel" ) {
 
-				) {
+					console.log( object.nodeID, object.orientation )
 
-					console.log( _this.selectedGizmo.nodeID, _this.selectedGizmo.orientation )
-
-					_this.updateNodePosition( _this.selectedGizmo.nodeID, _this.selectedGizmo.orientation, event );
+					_this.updateNodePosition( object.nodeID, object.orientation, event );
 
 					//if ( _this.viewerComponent.onUserSelectBeamLength != undefined ){
 					//
@@ -630,7 +670,7 @@ function Viewer( divID ){
 			 -if a valid mesh is found, its returned. if not, return undefined
 			 */
 			raycaster.setFromCamera( mouse, _this.camera );
-			var intersects = raycaster.intersectObjects( array, false );
+			var intersects = raycaster.intersectObjects( array, true );
 			if ( intersects[ 0 ] ) {
 				//toggleInput( false );
 				return intersects[ 0 ];
@@ -648,6 +688,8 @@ function Viewer( divID ){
 	var firstLaunch = true;
 
 	function createDesignScene(){
+
+		_this.editableElements = [];
 
 		_this.profilesLayer = createProfiles();
 
@@ -702,6 +744,7 @@ function Viewer( divID ){
 
 			var shiftMiddleElement = firstMeshMiddle.geometry.boundingSphere.center;
 
+			shiftMiddleElement.x += 50;
 			shiftMiddleElement.y -= 40;
 
 			if ( firstLaunch ) recalcuatePositions( middleElementModel, shiftMiddleElement );
@@ -718,6 +761,18 @@ function Viewer( divID ){
 			for ( var i = 0; i < structureDescription.outerElement.length; i++ ){
 
 				var element = sideElementModel.clone();
+
+				for ( var k = 0; k < element.children.length; k++ ){
+
+					element.children[ k ].material = new THREE.MeshPhongMaterial({
+						color: 0xffffff
+					});
+
+				}
+
+				element.name = 'profile';
+
+				_this.editableElements.push( element );
 
 				element.position.x = structureDescription.outerElement[ i ].center.x;
 				element.position.y = structureDescription.outerElement[ i ].center.y;
@@ -738,6 +793,18 @@ function Viewer( divID ){
 			for ( var i = 0; i < structureDescription.middleElement.length; i++ ){
 
 				var element = middleElementModel.clone();
+
+				for ( var k = 0; k < element.children.length; k++ ){
+
+					element.children[ k ].material = new THREE.MeshPhongMaterial({
+						color: 0xffffff
+					});
+
+				}
+
+				element.name = 'profile';
+
+				_this.editableElements.push( element );
 
 				element.position.x = structureDescription.middleElement[ i ].center.x;
 				element.position.y = structureDescription.middleElement[ i ].center.y;
@@ -767,14 +834,14 @@ function Viewer( divID ){
 
 
 			var windowGeometry = new THREE.BoxGeometry( 1,1,1 );
-			var windowMaterial = new THREE.MeshPhongMaterial({
-				color: 0x0099cc,
-				specular: 0xffffff,
-				shininess: 30,
-				transparent: true,
-				opacity: 0.4
-			});
-			var windowMesh = new THREE.Mesh( windowGeometry, windowMaterial );
+			//var windowMaterial = new THREE.MeshPhongMaterial({
+			//	color: 0x0099cc,
+			//	specular: 0xffffff,
+			//	shininess: 30,
+			//	transparent: true,
+			//	opacity: 0.4
+			//});
+			var windowMesh = new THREE.Mesh( windowGeometry );
 
 			windowMesh.scale.z = 3;
 
@@ -788,6 +855,14 @@ function Viewer( divID ){
 
 					var panel = windowMesh.clone();
 
+					panel.material = new THREE.MeshPhongMaterial({
+						color: 0x0099cc,
+						specular: 0xffffff,
+						shininess: 30,
+						transparent: true,
+						opacity: 0.4
+					});
+
 					panel.scale.x = 1 * ( structureWindowsDescription.panels[ i ].rightBottom.x - structureWindowsDescription.panels[ i ].leftTop.x );
 
 					panel.scale.y = 1 * ( structureWindowsDescription.panels[ i ].leftTop.y - structureWindowsDescription.panels[ i ].rightBottom.y );
@@ -797,6 +872,10 @@ function Viewer( divID ){
 					panel.position.x = posX;// + structureWindowsDescription.panels[ i ].width / 2;
 
 					panels.add( panel );
+
+					panel.name = "panel";
+
+					_this.editableElements.push( panel );
 
 				}
 
@@ -947,9 +1026,6 @@ Viewer.prototype.updateNodePosition = function( nodeID, orientation, event ){
 					nodesV[ 1 ].x = - ( Number( val ) - 100 );
 
 				}
-
-
-
 			}
 
 			_this.structureDescription.outerElement[ 0 ].length = nodesH[ 2 ].x + Math.abs( nodesH[ 0 ].x );
@@ -1074,7 +1150,7 @@ Viewer.prototype.createDimensionChain = function() {
 
 			dimLabel.nodeID = -1;
 
-			dimLabel.type = 'dimension';
+			dimLabel.name = 'dimensionLabel';
 
 			dimLabel.orientation = 'horizontal';
 
@@ -1149,7 +1225,7 @@ Viewer.prototype.createDimensionChain = function() {
 
 			dimLabel.nodeID = i;
 
-			dimLabel.type = 'dimension';
+			dimLabel.name = 'dimensionLabel';
 
 			dimLabel.orientation = 'horizontal';
 
@@ -1224,7 +1300,7 @@ Viewer.prototype.createDimensionChain = function() {
 
 			dimLabel.nodeID = i;
 
-			dimLabel.type = 'dimension';
+			dimLabel.name = 'dimensionLabel';
 
 			dimLabel.orientation = 'vertical';
 
