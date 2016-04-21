@@ -152,8 +152,8 @@ function makeLabelSprite2( message, parameters, in_color ) {
 	var textWidth = metrics.width;
 
 
-	context.fillStyle = "#00ffff";
-	context.fillRect(0, 0, canvas.width, canvas.height);   // for debug only
+	//context.fillStyle = "#00ffff";
+	//context.fillRect(0, 0, canvas.width, canvas.height);   // for debug only
 
 	context.textAlign = "center";
 	context.font = fontsize + 'px ' + fontface;
