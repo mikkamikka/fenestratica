@@ -227,8 +227,9 @@ function make3DObject( type, xPos, scale ) { // ARROWS MAKER
 				arrowTopSeg = 0;
 			var arrowGeom = new THREE.CylinderGeometry( arrowRadius, 0, arrowHeight,
 				arrowHeightSeg, arrowTopSeg );
-			arrowGeom.applyMatrix( new THREE.Matrix4().makeTranslation( 0, arrowHeight / 2, 0 ) );
-			var arrow = new THREE.Mesh( arrowGeom, holder.Ymat );
+			//arrowGeom.applyMatrix( new THREE.Matrix4().makeTranslation( 0, arrowHeight / 2, 0 ) );
+			arrowGeom.translate( 0, arrowHeight / 2, 0 );
+			var arrow = new THREE.Mesh( arrowGeom );
 			arrow.arrowHeight = arrowHeight;
 			return arrow;
 		}

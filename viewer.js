@@ -661,9 +661,9 @@ function Viewer( divID ){
 
 		_this.scene.add( _this.surfaceLoadLayer );
 
-		var dimensionChain = _this.createDimensionChain();
+		_this.dimensionChain = _this.createDimensionChain();
 
-		_this.scene.add( dimensionChain );
+		_this.scene.add( _this.dimensionChain );
 
 
 		function createProfiles(){
@@ -926,9 +926,29 @@ Viewer.prototype.updateNodePosition = function( nodeID, orientation, event ){
 				nodesV[ 0 ].x = - Number( val );
 				nodesV[ 1 ].x = - Number( val );
 
-			}else{
+			}else if ( nodeID==1 ){
 
 				nodesH[ 2 ].x = Number( val );
+
+			}else if ( nodeID==-1 ){
+
+				var newRightNodePos = Number( val ) - ( nodesH[ 1 ].x - nodesH[ 0 ].x );
+
+				if ( newRightNodePos >= 100 ){
+
+					nodesH[ 2 ].x = Number( newRightNodePos );
+
+				}else{
+
+					nodesH[ 2 ].x = 100;
+
+					nodesH[ 0 ].x = - ( Number( val ) - 100 );
+					nodesV[ 0 ].x = - ( Number( val ) - 100 );
+					nodesV[ 1 ].x = - ( Number( val ) - 100 );
+
+				}
+
+
 
 			}
 
@@ -991,13 +1011,13 @@ Viewer.prototype.reloadEditorScene = function(){
 
 	this.scene.remove( this.surfaceLoadLayer );
 
-	this.profilesLayer = null;
+	this.profilesLayer = undefined;
 
-	this.panelsLayer = null;
+	this.panelsLayer = undefined;
 
-	this.dimensionChain = null;
+	this.dimensionChain = undefined;
 
-	this.surfaceLoadLayer = null;
+	this.surfaceLoadLayer = undefined;
 
 	this.createDesignScene();
 
@@ -1014,6 +1034,8 @@ Viewer.prototype.createDimensionChain = function() {
 
 	var dimLineHorizontalHeight = Math.abs( nodesV[ 0 ].x ) + 50;
 
+	var dimLineOverallHeight = nodesH[ 0 ].y + 100;
+
 	var labelOffsetV = 20;
 
 	var vertLineObjSpacing = 10;
@@ -1026,6 +1048,90 @@ Viewer.prototype.createDimensionChain = function() {
 	var verticalDimChain = createVerticalDimChain( nodesV );
 
 	this.dimensionChain.add( verticalDimChain );
+
+	var overallDimension = createOverallDimension();
+
+	this.dimensionChain.add( overallDimension );
+
+	function createOverallDimension(){
+
+		var dimensionChain = new THREE.Object3D();
+
+		//for ( var i = 0; i < nodesH.length - 1; i++ ) {
+
+		var startX = nodesH[ 0 ].x,
+			endX = nodesH[ 2 ].x,
+			startY = nodesH[ 0 ].y,
+			endY = nodesH[ 2 ].y;
+
+			var posX = interpolateValue( startX, endX, 0.5 );
+
+			var dimension = Math.abs( endX - startX );
+
+			var text = dimension;
+
+			var dimLabel = createLabelDimension( new THREE.Vector3( posX, dimLineOverallHeight + labelOffsetV, 0 ), text, new THREE.Vector3() );
+
+			dimLabel.nodeID = -1;
+
+			dimLabel.type = 'dimension';
+
+			dimLabel.orientation = 'horizontal';
+
+			_this.editableElements.push( dimLabel );
+
+			var dimVertLine = makeDistanceLine(
+				[   new THREE.Vector3( startX, startY + vertLineObjSpacing + 50, 0 ),
+					new THREE.Vector3( startX, startY + vertLineExtensionStrokeLength + 50, 0 ),
+				],
+				viewerSettings.dim.lineColor
+			);
+
+
+			var arrowhead1 = make3DObject( "arrowHead", 0, 30 );
+			arrowhead1.position.setX( startX );
+			arrowhead1.position.setY( dimLineOverallHeight );
+			arrowhead1.rotation.z = - Math.PI / 2;
+			arrowhead1.material.color.set( viewerSettings.dim.lineColor );
+
+			var arrowhead2 = arrowhead1.clone();
+			arrowhead2.rotation.z -= Math.PI;
+			arrowhead2.position.setX( endX );
+			arrowhead2.material.color.set( viewerSettings.dim.lineColor );
+
+
+			dimensionChain.add( dimLabel );
+
+			dimensionChain.add( dimVertLine );
+
+			dimensionChain.add( arrowhead1 );
+
+			dimensionChain.add( arrowhead2 );
+
+		//}
+
+		var dimVertLine2 = makeDistanceLine(
+			[   new THREE.Vector3( endX, endY + vertLineObjSpacing + 50, 0 ),
+				new THREE.Vector3( endX, endY + vertLineExtensionStrokeLength + 50, 0 ),
+			],
+			viewerSettings.dim.lineColor );
+
+		dimensionChain.add( dimVertLine2 );
+
+		// horizontal length line
+
+		var start = startX;
+		var end = endX;
+		var beamLengthStartV3 = new THREE.Vector3( start, dimLineOverallHeight, 0 );
+		var beamLengthEndV3 = new THREE.Vector3( end, dimLineOverallHeight, 0 );
+		var lineVectors = [ beamLengthStartV3, beamLengthEndV3 ];
+
+		var lengthLine = makeDistanceLine( lineVectors, viewerSettings.dim.lineColor );
+		dimensionChain.add( lengthLine );
+
+		return dimensionChain;
+
+	}
 
 	function createHorizontalDimChain(){
 
@@ -1139,8 +1245,9 @@ Viewer.prototype.createDimensionChain = function() {
 			arrowhead1.material.color.set( viewerSettings.dim.lineColor );
 
 			var arrowhead2 = arrowhead1.clone();
-			arrowhead2.rotation.z -= Math.PI;
 			arrowhead2.position.setX( nodes[ i + 1 ].y );
+			arrowhead2.rotation.z = - Math.PI / 2;
+
 			arrowhead2.material.color.set( viewerSettings.dim.lineColor );
 
 
@@ -1203,8 +1310,6 @@ Viewer.prototype.createSurfaceLoadLayer = function(){
 		layer.add( presenrationInstance );
 
 	}
-
-
 
 	function createPresentationInstance( leftTop, rightBottom, force ){
 
