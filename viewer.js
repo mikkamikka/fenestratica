@@ -971,11 +971,16 @@ Viewer.prototype.updateNodePosition = function( nodeID, orientation, event ){
 
 	var _this = this;
 
+	var input = $( "#cad-view" ).find('#input');
+
+	if ( input.length ) return;
+
 	var newValue;
 
 	var n = document.createElement("input");
 	n.setAttribute("type", "number");
 	n.className = "inputValue";
+		n.id = 'input';
 	n.style.position = 'absolute';
 	n.style.top = event.clientY.toString() + 'px';
 	n.style.left = event.clientX.toString() + 'px';
